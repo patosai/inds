@@ -1,0 +1,11 @@
+[package]
+name = "inds"
+version = "0.1.0"
+authors = ["Patrick Tsai <penguin@patosai.com>"]
+
+[profile.release]
+debug = true
+
+[dependencies]
+log = "0.3.6"
+env_logger = "0.3.5"

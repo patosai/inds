@@ -1,12 +1,15 @@
 OUTFILE=inds
 
-default: compile
+default: test
 
 compile c:
-	rustc src/main.rs -o $(OUTFILE)
+	cargo build
 
-run r: compile
-	./$(OUTFILE)
+test t:
+	cargo test
+
+run r:
+	RUST_LOG=debug ./target/debug/inds tmp/tmp.txt
 
 clean cl:
-	rm $(OUTFILE)
+	cargo clean
