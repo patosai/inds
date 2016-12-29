@@ -5,6 +5,9 @@ default: test
 compile c:
 	cargo build
 
+compile_release cr:
+	cargo build --release
+
 test t:
 	cargo test
 

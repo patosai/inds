@@ -1,13 +1,14 @@
 #[macro_use]
 extern crate log;
-extern crate env_logger;
-
-use std::env;
+extern crate fern;
+extern crate time;
 
 mod indexer;
 
+use std::env;
+
 fn main() {
-    env_logger::init().unwrap();
+    config_logger();
 
     let args: Vec<String> = env::args().collect();
     if args.len() <= 1 {
@@ -20,3 +21,20 @@ fn main() {
         error!("failed to parse file {}", &args[1]);
     }
 }
+
+fn config_logger() {
+    // TODO print warnings and errors to stderr
+    let stdout_logger = fern::DispatchConfig {
+        format: Box::new(|msg: &str, level: &log::LogLevel, _location: &log::LogLocation| {
+            format!("[{}][{}] {}", time::now().strftime("%Y-%m-%d][%H:%M:%S").unwrap(), level, msg)
+        }),
+        output: vec![fern::OutputConfig::stdout()],
+        level: log::LogLevelFilter::Trace,
+    };
+
+    if let Err(err) = fern::init_global_logger(stdout_logger, log::LogLevelFilter::Trace) {
+        panic!(err);
+    }
+}
+
+
