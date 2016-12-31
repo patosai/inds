@@ -1,14 +1,13 @@
-use std::collections::HashMap;
+mod binary_encoder;
+
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
 
-const NGRAM_LENGTH: usize = 3;
+use types::*;
 
-type BinaryNgram = u32;
-type ByteOffset = u64;
-type NgramHashMap = HashMap<BinaryNgram, Vec<ByteOffset>>;
+const NGRAM_LENGTH: usize = 3;
 
 pub fn parse_file(filename: &str) -> Result<(), Box<Error>> {
     let file_handle = try!(File::open(filename));
@@ -20,15 +19,19 @@ pub fn parse_file(filename: &str) -> Result<(), Box<Error>> {
 
     for result in reader.lines() {
         let line = try!(result);
-        let bytes_parsed = parse_line(&line, &mut ngram_hash, byte_offset);
+        let bytes_parsed = parse_line(&line, byte_offset, &mut ngram_hash);
         byte_offset += bytes_parsed as ByteOffset;
         debug!("{} bytes parsed", byte_offset);
     }
-    return Ok(());
+
+    debug!("building binary index");
+    binary_encoder::encode(&filename, &ngram_hash);
+    // TODO
+    Ok(())
 }
 
 // splits line into multi-byte chunks
-fn parse_line(line: &str, hash: &mut NgramHashMap, byte_offset: ByteOffset) -> ByteOffset {
+fn parse_line(line: &str, byte_offset: ByteOffset, hash: &mut NgramHashMap) -> ByteOffset {
     let min_length = NGRAM_LENGTH;
     if line.len() <= min_length {
         warn!("not parsing line of length {}; too short", line.len());
@@ -47,7 +50,8 @@ fn parse_line(line: &str, hash: &mut NgramHashMap, byte_offset: ByteOffset) -> B
         }
         vec.push(byte_offset);
     }
-    return line.len() as ByteOffset;
+
+    line.len() as ByteOffset
 }
 
 fn byte_arr_to_uint(byte_arr: &[u8]) -> BinaryNgram {
@@ -56,11 +60,14 @@ fn byte_arr_to_uint(byte_arr: &[u8]) -> BinaryNgram {
         uint <<= 8;
         uint += byte_arr[i] as BinaryNgram;
     }
-    return uint;
+
+    uint
 }
 
 #[cfg(test)]
 mod tests {
+    use types::*;
+
     #[test]
     fn byte_arr_to_uint_works_for_length_3() {
         let bytes = vec![95, 32, 69];
@@ -79,8 +86,8 @@ mod tests {
     fn parse_line_gives_nonduplicated_hash() {
         let line = "abc de";
         let byte_offset = 12;
-        let mut hash: super::NgramHashMap = super::NgramHashMap::default();
-        let result = super::parse_line(&line, &mut hash, byte_offset);
+        let mut hash: NgramHashMap = NgramHashMap::default();
+        let result = super::parse_line(&line, byte_offset, &mut hash);
         assert_eq!(line.len() as u64, result);
 
         let trigrams = ["abc", "bc ", "c d", " de"];

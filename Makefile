@@ -11,7 +11,7 @@ compile_release cr:
 test t:
 	cargo test
 
-run r:
+run r: compile
 	RUST_LOG=debug ./target/debug/inds tmp/tmp.txt
 
 clean cl:

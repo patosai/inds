@@ -4,6 +4,7 @@ extern crate fern;
 extern crate time;
 
 mod indexer;
+mod types;
 
 use std::env;
 
@@ -26,7 +27,7 @@ fn config_logger() {
     // TODO print warnings and errors to stderr
     let stdout_logger = fern::DispatchConfig {
         format: Box::new(|msg: &str, level: &log::LogLevel, _location: &log::LogLocation| {
-            format!("[{}][{}] {}", time::now().strftime("%Y-%m-%d][%H:%M:%S").unwrap(), level, msg)
+            format!("[{}]{} {}", level, time::now().strftime("[%Y-%m-%d][%H:%M:%S]").unwrap(), msg)
         }),
         output: vec![fern::OutputConfig::stdout()],
         level: log::LogLevelFilter::Trace,
