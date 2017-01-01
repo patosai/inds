@@ -15,23 +15,28 @@ pub fn parse_file(filename: &str) -> Result<(), Box<Error>> {
     info!("parsing file '{}'", filename);
 
     let mut byte_offset: ByteOffset = 0;
+    let mut line_offsets: Vec<ByteOffset> = Vec::new();
+    let mut line_count: LineNumber = 0;
     let mut ngram_hash: NgramHashMap = NgramHashMap::default();
 
     for result in reader.lines() {
         let line = try!(result);
-        let bytes_parsed = parse_line(&line, byte_offset, &mut ngram_hash);
+        line_offsets.push(byte_offset);
+        let bytes_parsed = parse_line(&line, line_count, &mut ngram_hash);
+
         byte_offset += bytes_parsed as ByteOffset;
+        line_count += 1;
         debug!("{} bytes parsed", byte_offset);
     }
 
-    debug!("building binary index");
-    try!(binary_encoder::encode(&filename, &ngram_hash));
+    info!("building binary index");
+    try!(binary_encoder::encode(&filename, &line_offsets, &ngram_hash));
     // TODO
     Ok(())
 }
 
 // splits line into multi-byte chunks
-fn parse_line(line: &str, byte_offset: ByteOffset, hash: &mut NgramHashMap) -> ByteOffset {
+fn parse_line(line: &str, line_count: LineNumber, hash: &mut NgramHashMap) -> ByteOffset {
     let min_length = NGRAM_LENGTH;
     if line.len() <= min_length {
         warn!("not parsing line of length {}; too short", line.len());
@@ -43,12 +48,12 @@ fn parse_line(line: &str, byte_offset: ByteOffset, hash: &mut NgramHashMap) -> B
         let bytes: BinaryNgram = byte_arr_to_uint(&line_bytes[start_pos..(start_pos + NGRAM_LENGTH)]);
         let vec = hash.entry(bytes).or_insert(Vec::new());
         // don't duplicate
-        if let Some(last_byte_offset) = vec.last() {
-            if byte_offset.eq(last_byte_offset) {
+        if let Some(last_line_count) = vec.last() {
+            if line_count.eq(last_line_count) {
                 continue;
             }
         }
-        vec.push(byte_offset);
+        vec.push(line_count);
     }
 
     line.len() as ByteOffset
@@ -95,7 +100,7 @@ mod tests {
             let bytes = super::byte_arr_to_uint(trigram.as_bytes());
             assert!(hash.contains_key(&bytes));
             assert_eq!(1, hash[&bytes].len());
-            assert!(hash[&bytes].contains(&12u64));
+            assert!(hash[&bytes].contains(&12u16));
         }
     }
 }

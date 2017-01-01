@@ -5,6 +5,7 @@ extern crate time;
 
 mod indexer;
 mod types;
+mod util;
 
 use std::env;
 
