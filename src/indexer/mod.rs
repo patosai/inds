@@ -25,7 +25,7 @@ pub fn parse_file(filename: &str) -> Result<(), Box<Error>> {
     }
 
     debug!("building binary index");
-    binary_encoder::encode(&filename, &ngram_hash);
+    try!(binary_encoder::encode(&filename, &ngram_hash));
     // TODO
     Ok(())
 }

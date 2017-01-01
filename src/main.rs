@@ -18,8 +18,9 @@ fn main() {
     }
 
     let file_result = indexer::parse_file(&args[1]);
-    if file_result.is_err() {
-        error!("failed to parse file {}", &args[1]);
+    match file_result {
+        Ok(_) => {},
+        Err(err) => { error!("failed to parse file {}, {}", &args[1], err.to_string()); }
     }
 }
 
