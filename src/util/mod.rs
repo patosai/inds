@@ -1,7 +1,6 @@
 use std;
 use std::vec::Vec;
 
-// MUCH DANGER
 // TODO: figure out endianness
 pub fn to_u8_vec<T: std::marker::Sized>(in_num: T) -> Vec<u8> {
     let size: usize = std::mem::size_of::<T>();
@@ -10,27 +9,30 @@ pub fn to_u8_vec<T: std::marker::Sized>(in_num: T) -> Vec<u8> {
     let bytes: &[u8] = unsafe {
         std::slice::from_raw_parts(pointer, size)
     };
+    bytes.to_vec()
+}
 
-    // quick hack for my little endian machine
-    let mut vec = bytes.to_vec();
-    vec.reverse();
-    vec
+// TODO same endian issue
+pub fn from_u8_vec<T: std::clone::Clone + std::marker::Sized>(in_vec: &[u8]) -> Vec<T> {
+    let size: usize = std::mem::size_of::<T>();
+    let num_elems: usize = in_vec.len() / size;
+    let pp: *const u8 = unsafe {
+        in_vec.get_unchecked(0)
+    };
+    let pointer: *const T = pp as *const _;
+    let bytes: &[T] = unsafe {
+        std::slice::from_raw_parts(pointer, num_elems)
+    };
+    bytes.to_vec()
 }
 
 #[cfg(test)]
 mod tests {
-    use std;
-
     #[test]
-    fn to_u8_vec_for_usize() {
+    fn to_and_from_vec_for_usize() {
         let in_num: usize = 0x3269BF19;
-        let out_vec = super::to_u8_vec(in_num);
-
-        assert_eq!(out_vec.len(), std::mem::size_of::<usize>());
-        let len = out_vec.len();
-        assert_eq!(0x32, out_vec[len - 4]);
-        assert_eq!(0x69, out_vec[len - 3]);
-        assert_eq!(0xBF, out_vec[len - 2]);
-        assert_eq!(0x19, out_vec[len - 1]);
+        let out_vec: Vec<usize> = super::from_u8_vec(&super::to_u8_vec(in_num));
+        assert_eq!(1, out_vec.len());
+        assert_eq!(&in_num, out_vec.first().unwrap());
     }
 }
