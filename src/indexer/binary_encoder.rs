@@ -66,11 +66,11 @@ fn write_ngram_arrays(file: &mut File, ngram_hash: &NgramHashMap) -> std::io::Re
     let mut total_bytes_written: usize = 0;
 
     // 1b. now search for how long the arrays will be and write those values
-    for i in 0..0x1000000 {
-        if let Some(lines_for_ngram) = ngram_hash.get(&i) {
+    for key in ngram_hash.keys() {
+        if let Some(lines_for_ngram) = ngram_hash.get(&key) {
             // write the 3-byte value
             // TODO assumes little endianness
-            let bytes: Vec<u8> = util::to_u8_vec(i);
+            let bytes: Vec<u8> = util::to_u8_vec(key);
             try!(file.write(&bytes[..4]));
 
             total_bytes_written += 3;
