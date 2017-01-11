@@ -8,9 +8,6 @@ use std::path::PathBuf;
 
 use types::*;
 
-static FILE_SUFFIX: &'static str = "inds";
-static MAGIC_NUMBER: &'static [u8] = &[0x13, 0x37, 0xBE, 0xEF];
-
 pub fn encode(filename: &str, line_offsets: &[ByteOffset], ngram_hash: &NgramHashMap) -> std::io::Result<()> {
     let path: PathBuf = add_special_extension(&filename);
     if path.exists() {
@@ -40,13 +37,13 @@ fn add_special_extension(filename: &str) -> PathBuf {
             e.push(".");
             e
         });
-    extension.push(&FILE_SUFFIX);
+    extension.push(&BINARY_FILE_SUFFIX);
     path.set_extension(&extension);
     path
 }
 
 fn write_magic_number(file: &mut File) -> std::io::Result<usize> {
-    file.write(&MAGIC_NUMBER)
+    file.write(&BINARY_MAGIC_NUMBER)
 }
 
 fn write_line_offsets(file: &mut File, line_offsets: &[ByteOffset]) -> std::io::Result<usize> {
@@ -65,15 +62,16 @@ fn write_line_offsets(file: &mut File, line_offsets: &[ByteOffset]) -> std::io::
 fn write_ngram_arrays(file: &mut File, ngram_hash: &NgramHashMap) -> std::io::Result<usize> {
     let mut total_bytes_written: usize = 0;
 
-    // 1b. now search for how long the arrays will be and write those values
     for key in ngram_hash.keys() {
         if let Some(lines_for_ngram) = ngram_hash.get(&key) {
             // write the 3-byte value
             // TODO assumes little endianness
             let bytes: Vec<u8> = util::to_u8_vec(key);
-            try!(file.write(&bytes[..4]));
+            let (slice, _) = bytes.split_at(3);
+            try!(file.write(&slice));
 
-            total_bytes_written += 3;
+            total_bytes_written += slice.len();
+            debug!("{}", slice.len());
 
             // now write length of array
             let array_len: Vec<u8> = util::to_u8_vec(bytes.len() as ByteOffset);

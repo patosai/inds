@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+pub static BINARY_FILE_SUFFIX: &'static str = "inds";
+pub static BINARY_MAGIC_NUMBER: &'static [u8] = &[0x13, 0x37, 0xBE, 0xEF];
+
 // trigram - 3 bytes - 24 bits
 pub type BinaryNgram = u32;
 
