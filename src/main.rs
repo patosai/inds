@@ -2,6 +2,7 @@
 extern crate log;
 extern crate fern;
 extern crate time;
+extern crate glob;
 
 mod indexer;
 mod types;

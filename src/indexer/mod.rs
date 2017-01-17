@@ -1,4 +1,4 @@
-mod binary_encoder;
+mod binary;
 
 use std::error::Error;
 use std::fs::File;
@@ -26,11 +26,14 @@ pub fn parse_file(filename: &str) -> Result<(), Box<Error>> {
 
         byte_offset += bytes_parsed as ByteOffset;
         line_count += 1;
-        debug!("{} bytes parsed", byte_offset);
+
+        if line_count % 10 == 0 {
+            debug!("{} bytes parsed", byte_offset);
+        }
     }
 
     info!("building binary index");
-    try!(binary_encoder::encode(&filename, &line_offsets, &ngram_hash));
+    try!(binary::encoder::encode(&filename, &line_offsets, &ngram_hash));
     // TODO
     Ok(())
 }
