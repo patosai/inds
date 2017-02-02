@@ -14,15 +14,38 @@ fn main() {
     config_logger();
 
     let args: Vec<String> = env::args().collect();
-    if args.len() <= 1 {
-        error!("filename expected");
-        return;
+
+    let mut command;
+    match args.get(1) {
+        Some(comm) => command = comm,
+        None => {
+            error!("command expected");
+            return;
+        }
     }
 
-    let file_result = indexer::parse_file(&args[1]);
-    match file_result {
-        Ok(_) => {},
-        Err(err) => { error!("failed to parse file {}, {}", &args[1], err.to_string()); }
+    match command.as_ref() {
+        "index" => {
+            if let Some(file_name) = args.get(2) {
+                let file_result = indexer::parse_file(&file_name);
+                match file_result {
+                    Ok(_) => {},
+                    Err(err) => { error!("failed to parse file {}, {}", &args[1], err.to_string()); }
+                }
+            } else {
+                error!("no file provided");
+                return;
+            }
+        },
+
+        "search" => {
+
+        },
+
+        _ => {
+            error!("command {} not found", command);
+            return;
+        }
     }
 }
 

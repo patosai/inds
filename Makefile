@@ -12,7 +12,7 @@ test t:
 	cargo test
 
 run r: compile
-	RUST_LOG=debug ./target/debug/inds tmp/tmp.txt
+	RUST_LOG=debug ./target/debug/inds index tmp/tmp.txt
 
 clean cl:
 	cargo clean
