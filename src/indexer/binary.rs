@@ -35,11 +35,8 @@ pub mod encoder {
 
         let mut bytes_written: usize = 0;
         let mut file: File = try!(File::create(path));
-        debug!("writing magic number");
         bytes_written += try!(write_magic_number(&mut file));
-        debug!("writing newline byte offsets");
         bytes_written += try!(write_file_line_offsets(&mut file, &line_offsets));
-        debug!("writing ngram array byte offsets");
         bytes_written += try!(write_ngram_array_data(&mut file, &ngram_hash, bytes_written));
 
         info!("completed index");
@@ -48,6 +45,7 @@ pub mod encoder {
     }
 
     fn write_magic_number(file: &mut File) -> std::io::Result<usize> {
+        debug!("writing magic number");
         file.write(&BINARY_MAGIC_NUMBER)
     }
 
@@ -61,6 +59,10 @@ pub mod encoder {
             total_bytes_written += try!(file.write(&vec));
         }
 
+        debug!("writing newline byte offsets");
+        debug!(" --> total lines: {}", line_offsets.len());
+        debug!(" --> total bytes: {}", total_bytes_written);
+
         Ok(total_bytes_written)
     }
 
@@ -72,9 +74,8 @@ pub mod encoder {
         let line_number_size = std::mem::size_of::<LineNumber>();
         let byte_length_of_trigram_header = 3 + byte_offset_size + line_number_size;
 
-        let mut ngram_array_start_byte: ByteOffset = (ngram_hash.keys().len() * byte_length_of_trigram_header + start_offset) as ByteOffset;
-
-        debug!("total ngrams: {}", ngram_hash.keys().len());
+        let mut ngram_array_start_byte: ByteOffset =
+            (ngram_hash.keys().len() * byte_length_of_trigram_header + start_offset) as ByteOffset;
 
         // first write the headers
         for key in ngram_hash.keys() {
@@ -122,7 +123,11 @@ pub mod encoder {
             }
         }
 
-        debug!("total line number array elements: {}", num_line_numbers);
+
+        debug!("writing ngram array byte offsets");
+        debug!(" --> total ngrams: {}", ngram_hash.keys().len());
+        debug!(" --> total array elements: {}", num_line_numbers);
+        debug!(" --> total bytes written: {}", total_bytes_written);
 
         Ok(total_bytes_written)
     }

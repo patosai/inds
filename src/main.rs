@@ -15,7 +15,7 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
 
-    let mut command;
+    let command;
     match args.get(1) {
         Some(comm) => command = comm,
         None => {
@@ -63,5 +63,3 @@ fn config_logger() {
         panic!(err);
     }
 }
-
-
