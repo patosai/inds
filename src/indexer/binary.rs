@@ -38,9 +38,9 @@ pub mod encoder {
         debug!("writing magic number");
         bytes_written += try!(write_magic_number(&mut file));
         debug!("writing newline byte offsets");
-        bytes_written += try!(write_line_offsets(&mut file, &line_offsets));
+        bytes_written += try!(write_file_line_offsets(&mut file, &line_offsets));
         debug!("writing ngram array byte offsets");
-        bytes_written += try!(write_ngram_arrays(&mut file, &ngram_hash));
+        bytes_written += try!(write_ngram_array_data(&mut file, &ngram_hash, bytes_written));
 
         info!("completed index");
         debug!("{} bytes written", bytes_written);
@@ -51,7 +51,7 @@ pub mod encoder {
         file.write(&BINARY_MAGIC_NUMBER)
     }
 
-    fn write_line_offsets(file: &mut File, line_offsets: &[ByteOffset]) -> std::io::Result<usize> {
+    fn write_file_line_offsets(file: &mut File, line_offsets: &[ByteOffset]) -> std::io::Result<usize> {
         let mut total_bytes_written: usize = 0;
 
         let line_offset_len_bytes: Vec<u8> = util::to_u8_vec(line_offsets.len() as u64);
@@ -64,33 +64,54 @@ pub mod encoder {
         Ok(total_bytes_written)
     }
 
-    fn write_ngram_arrays(file: &mut File, ngram_hash: &NgramHashMap) -> std::io::Result<usize> {
+    fn write_ngram_array_data(file: &mut File, ngram_hash: &NgramHashMap, start_offset: usize) -> std::io::Result<usize> {
         let mut total_bytes_written: usize = 0;
 
-        // TODO this iterator is not sorted
-        for key in ngram_hash.keys() {
-            if let Some(lines_for_ngram) = ngram_hash.get(&key) {
-                // write the 3-byte value
+        let hash_keys = ngram_hash.keys();
+        let hash_keys_clone = hash_keys.clone();
+        let byte_offset_size = std::mem::size_of::<ByteOffset>();
+        let line_number_size = std::mem::size_of::<LineNumber>();
+        let byte_length_of_trigram_header = 3 + byte_offset_size + line_number_size;
+
+        let mut ngram_array_start_byte: ByteOffset = (hash_keys.len() * byte_length_of_trigram_header + start_offset) as ByteOffset;
+
+        // first write the headers
+        for key in hash_keys {
+            if let Some(ngram_array) = ngram_hash.get(&key) {
+                // write the trigram (3-byte) value
                 // TODO assumes little endianness
                 let bytes: Vec<u8> = util::to_u8_vec(key);
                 let (slice, _) = bytes.split_at(3);
                 try!(file.write(&slice));
 
+                debug_assert!(slice.len() == 3);
                 total_bytes_written += slice.len();
 
+                // write the byte offset of the array
+                let array_offset: Vec<u8> = util::to_u8_vec(ngram_array_start_byte as ByteOffset);
+                try!(file.write(&array_offset));
+                total_bytes_written += array_offset.len();
+                ngram_array_start_byte += (ngram_array.len() * line_number_size) as ByteOffset;
+
                 // now write length of array
-                let array_len: Vec<u8> = util::to_u8_vec(bytes.len() as ByteOffset);
+                let array_len: Vec<u8> = util::to_u8_vec(bytes.len() as LineNumber);
                 try!(file.write(&array_len));
+                total_bytes_written += array_len.len();
+            } else {
+                debug_assert!(false);
+            }
+        }
 
-                total_bytes_written += bytes.len();
-
-                // now write array
-                for line_num in lines_for_ngram {
+        // now write the arrays
+        for key in hash_keys_clone {
+            if let Some(ngram_array) = ngram_hash.get(&key) {
+                for line_num in ngram_array {
                     let vec = util::to_u8_vec(line_num);
                     try!(file.write(&vec));
+                    total_bytes_written += vec.len();
                 }
-
-                total_bytes_written += std::mem::size_of::<LineNumber>();
+            } else {
+                debug_assert!(false);
             }
         }
 

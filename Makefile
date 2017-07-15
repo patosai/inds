@@ -2,17 +2,17 @@ OUTFILE=inds
 
 default: test
 
-compile c:
+all:
 	cargo build
 
-compile_release cr:
+release:
 	cargo build --release
 
 test t:
 	cargo test
 
-run r: compile
+run r: all
 	RUST_LOG=debug ./target/debug/inds index tmp/tmp.txt
 
-clean cl:
+clean c:
 	cargo clean
