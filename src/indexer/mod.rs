@@ -27,10 +27,11 @@ pub fn parse_file(filename: &str) -> Result<(), Box<Error>> {
         byte_offset += bytes_parsed as ByteOffset;
         line_count += 1;
 
-        if line_count % 10 == 0 {
+        if line_count % 1000 == 0 {
             debug!("{} bytes parsed", byte_offset);
         }
     }
+    info!("{} bytes parsed", byte_offset);
 
     info!("building binary index");
     try!(binary::encoder::encode(&filename, &line_offsets, &ngram_hash));

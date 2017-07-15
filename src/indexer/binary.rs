@@ -67,16 +67,17 @@ pub mod encoder {
     fn write_ngram_array_data(file: &mut File, ngram_hash: &NgramHashMap, start_offset: usize) -> std::io::Result<usize> {
         let mut total_bytes_written: usize = 0;
 
-        let hash_keys = ngram_hash.keys();
-        let hash_keys_clone = hash_keys.clone();
+        let mut hash_key_order: Vec<BinaryNgram> = Vec::new();
         let byte_offset_size = std::mem::size_of::<ByteOffset>();
         let line_number_size = std::mem::size_of::<LineNumber>();
         let byte_length_of_trigram_header = 3 + byte_offset_size + line_number_size;
 
-        let mut ngram_array_start_byte: ByteOffset = (hash_keys.len() * byte_length_of_trigram_header + start_offset) as ByteOffset;
+        let mut ngram_array_start_byte: ByteOffset = (ngram_hash.keys().len() * byte_length_of_trigram_header + start_offset) as ByteOffset;
+
+        debug!("total ngrams: {}", ngram_hash.keys().len());
 
         // first write the headers
-        for key in hash_keys {
+        for key in ngram_hash.keys() {
             if let Some(ngram_array) = ngram_hash.get(&key) {
                 // write the trigram (3-byte) value
                 // TODO assumes little endianness
@@ -97,23 +98,31 @@ pub mod encoder {
                 let array_len: Vec<u8> = util::to_u8_vec(bytes.len() as LineNumber);
                 try!(file.write(&array_len));
                 total_bytes_written += array_len.len();
+
+                hash_key_order.push(*key);
             } else {
                 debug_assert!(false);
             }
         }
 
+        let mut num_line_numbers = 0;
+
         // now write the arrays
-        for key in hash_keys_clone {
+        for key in hash_key_order {
             if let Some(ngram_array) = ngram_hash.get(&key) {
                 for line_num in ngram_array {
                     let vec = util::to_u8_vec(line_num);
                     try!(file.write(&vec));
                     total_bytes_written += vec.len();
                 }
+
+                num_line_numbers += ngram_array.len();
             } else {
                 debug_assert!(false);
             }
         }
+
+        debug!("total line number array elements: {}", num_line_numbers);
 
         Ok(total_bytes_written)
     }
